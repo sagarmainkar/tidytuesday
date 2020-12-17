@@ -5,6 +5,9 @@
 # Session Data files
 .RData
 
+tidytuesday.Rproj
+*_NOPUSH*
+*.nb.html
 # User-specific files
 .Ruserdata
 
