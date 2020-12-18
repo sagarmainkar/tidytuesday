@@ -49,5 +49,9 @@ by_loc_stage %>%
                     facet_wrap(~round_stage, scales = "free_y")+
                     coord_flip() +
                       scale_x_reordered() +
-                      scale_y_continuous(expand = c(0,0))
+                      scale_y_continuous(expand = c(0,0)) +
+                          labs(y = "Number of times a stage was held in a location",
+                               x = NULL,
+                               title = "Pattern for each stage held at a location"
+                          )
             
