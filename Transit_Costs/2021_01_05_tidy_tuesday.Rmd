@@ -21,12 +21,13 @@ library(tidytuesdayR)
 library(scales)
 library(glue)
 library(countrycode)
+library(ggrepel)
 theme_set(theme_light())
 ```
 
 # Load the weekly Data
 
-Dowload the weekly data and make available in the `tt` object.
+Download the weekly data and make available in the `tt` object.
 
 ```{r Load}
 
@@ -62,12 +63,7 @@ tt %>%
 
 Explore the data and process it into a nice format for plotting! Access each dataset by name by using a dollarsign after the `tt` object and then the name of the data set.
 
-```{r Wrangle}
 
-transit_cost<- tt$transit_cost
-
-view(transit_cost)
-```
 
 
 # Visualize
@@ -92,7 +88,7 @@ transit_cost %>%
 ```
 ```{r}
 transit_cost %>% 
-  filter(country == "United States") %>% 
+  filter(country == "United States",) %>% 
   mutate(line =fct_reorder(line,year)) %>% 
   ggplot(aes(xmin = start_year,xmax=end_year,y=line,color=city ,size=real_cost)) +
   geom_errorbarh(height = 0.1) +
@@ -100,28 +96,69 @@ transit_cost %>%
        y="",
        color="City")
 
+transit_cost 
+
 
 transit_cost %>% 
-  ggplot(aes(cost_km_millions))+
+  filter(!is.na(rr)) %>% 
+  mutate(country = fct_lump(country,10)) %>% 
+  ggplot(aes(cost_km_millions,fill=country))+
   geom_histogram() +
   scale_x_continuous(labels=dollar) +
-  labs(x ="Cost / KM (Millions of USD)")
+  labs(x ="Cost / KM (Millions of USD)") +
+  facet_wrap(~rr) 
 
+
+countries <- transit_cost %>% 
+  filter(tunnel_per == 1,
+         !is.na(cost_km_millions)) %>% 
+  mutate(country=fct_lump(country,10)) %>% 
+  add_count(country,year) 
+
+
+transit_cost %>% 
+  filter(tunnel_per == 1,
+         !is.na(cost_km_millions)) %>% 
+  mutate(country=fct_lump(country,10)) %>% 
+  add_count(country,year) %>% 
+  ggplot(aes(year,cost_km_millions,color=country))+
+  geom_text_repel(aes(label=country))+
+  geom_line() +
+  facet_wrap(~ rr)+
+  theme(legend.position = "none")
+  # guides(color =FALSE)
 
 transit_cost %>% 
   filter(!is.na(cost_km_millions),
          tunnel_per == 1) %>% 
    mutate(country = fct_lump(country,25)) %>% 
   add_count(country ) %>% 
- mutate(
-          country = glue("{ country } ({n})") ,
-         country = fct_reorder(country,cost_km_millions,na.rm =TRUE)
-         ) %>% 
   ggplot(aes(cost_km_millions,country,fill=rr)) +
   geom_boxplot() +
   scale_x_continuous(labels=dollar) +
   labs(x ="Cost / KM (Millions of USD)",
        y ="")
+
+
+transit_cost %>% 
+  filter(!is.na(cost_km_millions),
+         tunnel_per == 1) %>% 
+  mutate(country = fct_lump(country,10)) %>%
+  
+  group_by(country,year,rr) %>% 
+  summarise(median_cost_km = median(cost_km_millions),
+            mean_cost_km = mean(cost_km_millions),
+            .groups="keep") %>% 
+  ggplot(aes(year,mean_cost_km,color=country))+
+  geom_line()+
+  scale_y_continuous(labels=dollar)+
+  facet_wrap(~ rr)+
+   labs(x ="Year",
+       y ="Mean Cost / KM (Millions of USD)",
+       color="Country")
+
+
+
 
 transit_cost %>% 
   filter(!is.na(cost_km_millions),
@@ -139,6 +176,25 @@ transit_cost %>%
        y ="",
        fill="Type of project")
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
@@ -160,6 +216,21 @@ transit_cost %>%
        fill="Type of project")+
   expand_limits(x=0)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
