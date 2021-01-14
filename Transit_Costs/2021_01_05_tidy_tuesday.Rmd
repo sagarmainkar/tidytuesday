@@ -62,10 +62,6 @@ tt %>%
 # Wrangle
 
 Explore the data and process it into a nice format for plotting! Access each dataset by name by using a dollarsign after the `tt` object and then the name of the data set.
-
-
-
-
 # Visualize
 
 Using your processed dataset, create your unique visualization.
@@ -88,7 +84,7 @@ transit_cost %>%
 ```
 ```{r}
 transit_cost %>% 
-  filter(country == "United States",) %>% 
+  filter(country == "United States") %>% 
   mutate(line =fct_reorder(line,year)) %>% 
   ggplot(aes(xmin = start_year,xmax=end_year,y=line,color=city ,size=real_cost)) +
   geom_errorbarh(height = 0.1) +
@@ -131,13 +127,21 @@ transit_cost %>%
 transit_cost %>% 
   filter(!is.na(cost_km_millions),
          tunnel_per == 1) %>% 
-   mutate(country = fct_lump(country,25)) %>% 
+  mutate(country = fct_lump(country,15)) %>% 
   add_count(country ) %>% 
+<<<<<<< Updated upstream
+=======
+  mutate(
+    country = glue("{ country } ({n})") ,
+    country = fct_reorder(country,cost_km_millions,na.rm =TRUE)
+  ) %>% 
+>>>>>>> Stashed changes
   ggplot(aes(cost_km_millions,country,fill=rr)) +
   geom_boxplot() +
   scale_x_continuous(labels=dollar) +
   labs(x ="Cost / KM (Millions of USD)",
-       y ="")
+       y ="",
+       fill="Railroad")
 
 
 transit_cost %>% 
@@ -163,12 +167,12 @@ transit_cost %>%
 transit_cost %>% 
   filter(!is.na(cost_km_millions),
          tunnel_per == 1) %>% 
-   mutate(country = fct_lump(country,10)) %>% 
+  mutate(country = fct_lump(country,10)) %>% 
   add_count(country ) %>% 
- mutate(
-          country = glue("{ country } ({n})") ,
-         country = fct_reorder(country,cost_km_millions,na.rm =TRUE)
-         ) %>% 
+  mutate(
+    country = glue("{ country } ({n})") ,
+    country = fct_reorder(country,cost_km_millions,na.rm =TRUE)
+  ) %>% 
   ggplot(aes(cost_km_millions,country,fill=rr)) +
   geom_boxplot() +
   scale_x_continuous(labels=dollar) +
@@ -202,12 +206,12 @@ transit_cost %>%
   filter(!is.na(cost_km_millions),
          tunnel_per == 1,
          country == "China") %>% 
-   mutate(city = fct_lump(city,10)) %>% 
+  mutate(city = fct_lump(city,10)) %>% 
   add_count(city ) %>% 
- mutate(
-          city = glue("{ city } ({n})") ,
-         city = fct_reorder(city,cost_km_millions,na.rm =TRUE)
-         ) %>% 
+  mutate(
+    city = glue("{ city } ({n})") ,
+    city = fct_reorder(city,cost_km_millions,na.rm =TRUE)
+  ) %>% 
   ggplot(aes(cost_km_millions,city,fill=rr)) +
   geom_boxplot() +
   scale_x_continuous(labels=dollar) +
@@ -238,7 +242,7 @@ transit_cost %>%
   filter(!is.na(cost_km_millions),
          !is.na(rr),
          !is.na(country)) %>% 
- mutate(country = fct_lump(country,15)) %>% 
+  mutate(country = fct_lump(country,15)) %>% 
   mutate(country=fct_reorder(country,cost_km_millions,na.rm =TRUE)) %>% 
   ggplot(aes(y=country,x=cost_km_millions)) +
   geom_boxplot(aes(fill=rr))
@@ -263,10 +267,10 @@ transit_cost %>%
   add_count(country) %>% 
   summarise(mean_cost = mean(cost_km_millions)) %>% 
   ungroup() %>% 
-  filter(country %in% ("United States")) %>% 
+  filter(country %in% c("United States","South Korea")) %>% 
   ggplot(aes(year_grp,mean_cost)) +
   geom_line(aes(color=country))
-  
+
 ```
 
 # Save Image
