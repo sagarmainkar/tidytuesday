@@ -129,13 +129,6 @@ transit_cost %>%
          tunnel_per == 1) %>% 
   mutate(country = fct_lump(country,15)) %>% 
   add_count(country ) %>% 
-<<<<<<< Updated upstream
-=======
-  mutate(
-    country = glue("{ country } ({n})") ,
-    country = fct_reorder(country,cost_km_millions,na.rm =TRUE)
-  ) %>% 
->>>>>>> Stashed changes
   ggplot(aes(cost_km_millions,country,fill=rr)) +
   geom_boxplot() +
   scale_x_continuous(labels=dollar) +
