@@ -1,0 +1,221 @@
+---
+title: "TidyTemplate"
+date: 2021-02-11
+output: html_output
+editor_options: 
+  chunk_output_type: console
+---
+
+# TidyTuesday
+
+Join the R4DS Online Learning Community in the weekly #TidyTuesday event!
+Every week we post a raw dataset, a chart or article related to that dataset, and ask you to explore the data.
+While the dataset will be “tamed”, it will not always be tidy! As such you might need to apply various R for Data Science techniques to wrangle the data into a true tidy format.
+The goal of TidyTuesday is to apply your R skills, get feedback, explore other’s work, and connect with the greater #RStats community!
+As such we encourage everyone of all skills to participate!
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+theme_set(theme_light())
+```
+
+# Load the weekly Data
+
+Download the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2021-02-09")
+
+```
+
+
+# Readme
+
+Take a look at the readme for the weekly data to get insight on the dataset.
+This includes a data dictionary, source, and a link to an article on the data.
+
+```{r Readme, eval = interactive()}
+
+tt
+
+```
+
+
+# Glimpse Data
+
+Take an initial look at the format of the data available.
+
+```{r Glimpse}
+
+tt %>% 
+  map(glimpse)
+
+```
+
+
+```{r}
+
+#Let's make one graph of each dataset
+tt$lifetime_earn %>% 
+  ggplot(aes(lifetime_earn,race,fill=gender))+
+  geom_col(position="dodge") +
+  scale_x_continuous(labels=dollar)
+
+
+
+plot_by_race <- function(data,column,labels=dollar,...){
+   last_year <-data %>%
+              group_by(race) %>% 
+             slice_max(year,n=1)
+  
+   data %>% 
+    mutate(race= fct_reorder(race,-{{column}})) %>% 
+    ggplot(aes(year,{{column}},color=race,...)) +
+    geom_line() +
+     geom_text(aes(label=race,color=race),hjust=0,data=last_year,nudge_x = 0.3)+
+    expand_limits(x=2022,y=0) +
+    scale_y_continuous(labels = labels) +
+    labs(
+      x="Year",
+      color="Race"
+    )+
+    theme(
+      legend.position = "none",
+      panel.grid = element_blank()
+    )
+}
+
+
+
+tt$student_debt %>% 
+  plot_by_race(loan_debt_pct,percent)+
+  labs(y= "% of families with student loan debt")
+
+tt$student_debt %>% 
+  plot_by_race(loan_debt,dollar) +
+  labs(y= "Avg student loan debt")
+
+tt$retirement %>% 
+    plot_by_race(retirement,dollar)+
+    labs(y="Average family liquid retirement savings normalized to 2016 dollars")
+
+
+tt$home_owner %>% 
+  plot_by_race(home_owner_pct,labels=percent) +
+  labs(y="Home ownership percentage")
+
+tt$race_wealth %>% 
+  plot_by_race(wealth_family,labels=dollar) +
+  facet_wrap(~type,scales = "free_y")+
+  expand_limits(x=2025)+
+  labs(y ="Family wealth (2016 dollars)")
+
+tt$income_time %>% 
+  mutate(percentile=fct_reorder(percentile,-income_family)) %>% 
+  ggplot(aes(year,income_family,color=percentile)) +
+  geom_line() +
+  expand_limits(y=0)+
+  scale_y_continuous(labels=dollar)+
+  labs(x ="Year",y="Family Income")
+  
+
+tt$income_time %>% 
+  pivot_wider(names_from = percentile,values_from = income_family) %>% 
+  ggplot(aes(year,`50th`,ymin=`10th`,ymax=`90th`))+
+  geom_ribbon(alpha=0.25) +
+  geom_line(size=1) +
+  scale_y_continuous(labels=dollar)+
+  labs(x="Year",y="Family-level income with(median with 10th and 90th percentiles")
+
+tt$income_limits %>% 
+  
+  filter(dollar_type == "2019 Dollars",
+         !str_detect(race,"or in Combination")) %>%
+  filter(income_quintile == "Top 5%") %>% 
+  distinct(race,year,income_quintile,.keep_all = TRUE) %>% 
+  plot_by_race(income_dollars,labels=dollar) +
+  expand_limits(x=2028)+
+  labs(y="Top 5% income (2019 dollars)")
+
+
+tt$income_limits %>% 
+  filter(dollar_type == "2019 Dollars",
+         !str_detect(race,"or in Combination")) %>%
+  distinct(race,year,income_quintile,.keep_all = TRUE) %>% 
+  pivot_wider(names_from = income_quintile,values_from=income_dollars) %>% 
+  mutate(race=fct_reorder(race,-Fourth)) %>% 
+  ggplot(aes(year,ymin=Lowest,ymax=Fourth,fill=race))+
+  geom_ribbon(alpha=0.25) +
+  scale_y_continuous(labels=dollar)+
+  labs(x="Year",y="20th-80th quantiles")
+
+library(plotly)
+g <- tt$income_limits %>% 
+        filter(dollar_type == "2019 Dollars",
+               !str_detect(race,"or in Combination")) %>%
+        distinct(race,year,income_quintile,.keep_all = TRUE) %>% 
+        mutate(income_quintile=fct_reorder(income_quintile,-income_dollars)) %>% 
+        ggplot(aes(year,income_dollars,color=income_quintile))+
+        geom_line() +
+        scale_y_continuous(labels=dollar)+
+        labs(x="Year",y="Income Quintile",color="") +
+        facet_wrap(~race)
+  
+ggplotly(g)
+
+
+```
+
+```{r}
+tt$income_aggregate %>% 
+  group_by(year,race) %>% 
+  filter(income_quintile  != "Top 5%") %>% 
+  summarise(sum(income_share))
+
+
+tt$income_aggregate %>% 
+  group_by(year,race) %>% 
+   filter(income_quintile  != "Top 5%",
+          !str_detect(race,"or in Combination")) %>% 
+  mutate(income_share = income_share/100,
+         income_quintile = fct_inorder(income_quintile)) %>% 
+  ggplot(aes(year,income_share,fill=income_quintile)) +
+  geom_area() +
+  facet_wrap(~race)+
+  scale_y_continuous(labels=percent)+
+  labs(y="% share of income",
+       fill="Income Quintile")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
