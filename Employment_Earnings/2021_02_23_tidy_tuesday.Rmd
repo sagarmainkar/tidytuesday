@@ -1,0 +1,180 @@
+---
+title: "Employement Earnings"
+date: 2021-02-11
+output: html_output
+editor_options: 
+  chunk_output_type: console
+---
+
+# TidyTuesday
+
+Join the R4DS Online Learning Community in the weekly #TidyTuesday event!
+Every week we post a raw dataset, a chart or article related to that dataset, and ask you to explore the data.
+While the dataset will be “tamed”, it will not always be tidy! As such you might need to apply various R for Data Science techniques to wrangle the data into a true tidy format.
+The goal of TidyTuesday is to apply your R skills, get feedback, explore other’s work, and connect with the greater #RStats community!
+As such we encourage everyone of all skills to participate!
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+library(lubridate)
+theme_set(theme_light())
+
+```
+
+# Load the weekly Data
+
+Download the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2021-02-23")
+```
+
+
+# Readme
+
+Take a look at the readme for the weekly data to get insight on the dataset.
+This includes a data dictionary, source, and a link to an article on the data.
+
+```{r Readme, eval = interactive()}
+
+tt
+
+```
+
+
+# Glimpse Data
+
+Take an initial look at the format of the data available.
+
+```{r Glimpse}
+
+tt %>% 
+  map(glimpse)
+
+```
+
+# Wrangle
+
+Explore the data and process it into a nice format for plotting! Access each dataset by name by using a dollarsign after the `tt` object and then the name of the data set.
+
+```{r Wrangle}
+# tt$employed %>% 
+#   count(major_occupdation)
+# 
+# 
+# tt$employed %>%
+#   filter(
+#          race_gender != "TOTAL",
+#          !is.na(employ_n)
+#          ) %>% 
+#   group_by(industry,year) %>% 
+#   summarise(employed =sum(employ_n)) %>% 
+#   ungroup() %>% 
+#   ggplot(aes(x="",y=employed,fill=factor(industry))) +
+#   geom_col()+
+#   coord_polar(theta = "y", start=0)+
+#   scale_y_continuous(labels=scales::label_number_si())+
+#   facet_wrap(~year)
+
+```
+
+
+# Visualize
+
+
+
+```{r}
+# filter for all ages and ethnic origins, and calculate avg yearly earnings
+
+# Labels
+title <- "INCOME GAP BETWEEN BLACK AND WHITE AMERICANS OVER YEARS"
+
+subtitle <- "Mean weekly salary in the US for people ages 16 and over"
+
+caption <- "Source: U.S. BEREAU OF LABOR STATISTICS| Visualization: @SagarMainkar"
+
+
+lbls_data <-tt$earn %>% 
+  filter(
+    sex %in% c("Men","Women"),
+    age == "16 years and over",
+    race %in% c("White","Black or African American")
+    
+  ) %>% 
+  group_by(sex,race,year) %>% 
+  summarise(avg_sal = mean(median_weekly_earn)) %>% 
+  pivot_wider(names_from=race,values_from=avg_sal) %>% 
+  rename(
+        black=`Black or African American`,
+        white='White'
+  ) %>% 
+  filter(year == max(year)) %>% 
+  pivot_longer(cols=c("black","white"),names_to="race",values_to="avg_sal") %>% 
+  mutate(year=as.factor(year),
+         color= ifelse(race!="white","#008080","#eb4b85"))
+  
+  
+tt$earn %>% 
+  filter(
+    sex %in% c("Men","Women"),
+    age == "16 years and over",
+    race %in% c("White","Black or African American")
+    
+  ) %>% 
+  group_by(sex,race,year) %>% 
+  summarise(avg_sal = mean(median_weekly_earn)) %>% 
+  pivot_wider(names_from=race,values_from=avg_sal) %>% 
+  rename(
+        black=`Black or African American`,
+        white='White'
+  ) %>% 
+  mutate(year=as.factor(year)) %>% 
+  ggplot()+
+  geom_line(aes(x=year,y=black,group=sex),color="#eb4b85")+
+  geom_line(aes(x=year,y=white,group=sex),color="#008080")+
+  geom_ribbon(aes(x=year,ymin=black,ymax=white,group=sex),fill="#c0c0c0",alpha=0.3)+
+  geom_text(aes(label=race,x=year,y=avg_sal,color=color),data=lbls_data,hjust="outward",nudge_x = 0.2,show.legend = NA)+
+  expand_limits(x=as.factor(2022))+
+  scale_y_continuous(labels = dollar)+
+  facet_wrap(~sex)+
+  labs(x = "", 
+       y="",
+       title = title, 
+       subtitle = subtitle,
+       caption = caption)+
+  theme(
+    panel.grid= element_blank(),
+    panel.background = element_rect(fill="#ffffff"),
+    axis.ticks= element_blank(),
+    panel.border=  element_blank(),
+    plot.title=element_text(hjust = .5, face="bold", size = 22),
+    plot.subtitle = element_text(hjust=.5, size = 18,face = "italic"),
+    legend.position = "",
+    
+  )
+         
+  
+
+
+
+
+```
+
+# Save Image
+
+Save your image for sharing. Be sure to use the `#TidyTuesday` hashtag in your post on twitter! 
+
+```{r}
+
+# This will save your most recent plot
+ggsave(
+  filename = ".png",
+  device = "png")
+
+```
